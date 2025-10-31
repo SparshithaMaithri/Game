@@ -2,22 +2,25 @@ pipeline {
     agent any
 
     environment {
-        // Add Docker path so Jenkins can access it
-        PATH = "${PATH};C:\\Program Files\\Docker\\Docker\\resources\\bin"
+        // ✅ Full PATH includes Docker, Kubectl, Git, Python, Node, and Windows tools
+        PATH = "C:\\Program Files\\Docker\\Docker\\resources\\bin;C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\Git\\cmd;C:\\Program Files\\nodejs\\;C:\\Program Files\\Python312\\Scripts\\;C:\\Program Files\\Python312\\;${PATH}"
+        KUBECONFIG = "C:\\Users\\spmah\\.kube\\config"
     }
 
     stages {
-        stage('Check Docker') {
+        stage('Verify Docker & Kubectl') {
             steps {
-                echo '🔍 Checking Docker installation...'
-                bat 'docker --version'
-                bat 'docker ps'
+                echo "🐳 Checking Docker and Kubectl..."
+                bat '''
+                docker --version
+                kubectl version --client
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo "🐳 Building Docker Image..."
+                echo "🏗️ Building Docker Image..."
                 dir('C:\\Users\\spmah\\Downloads\\Game') {
                     bat 'docker build -t kubdemoapp:v1 .'
                 }
@@ -26,16 +29,18 @@ pipeline {
 
         stage('Docker Login') {
             steps {
-                echo "🔑 Logging into Docker Hub..."
+                echo "🔐 Logging into Docker Hub..."
                 bat 'docker login -u sparshitha -p 0213@Csptha'
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Docker Image to Docker Hub') {
             steps {
-                echo "🚀 Pushing Docker image to Docker Hub..."
-                bat 'docker tag kubdemoapp:v1 sparshitha/game:kubeimage1'
-                bat 'docker push sparshitha/game:kubeimage1'
+                echo "🚀 Pushing Docker Image to Docker Hub..."
+                bat '''
+                docker tag kubdemoapp:v1 sparshitha/game:kubeimage1
+                docker push sparshitha/game:kubeimage1
+                '''
             }
         }
 
@@ -43,7 +48,6 @@ pipeline {
             steps {
                 echo "⚙️ Deploying to Kubernetes cluster..."
                 bat '''
-                set KUBECONFIG=C:\\Users\\spmah\\.kube\\config
                 kubectl cluster-info
                 kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\deployment.yaml
                 kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\service.yaml
