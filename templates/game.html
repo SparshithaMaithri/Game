@@ -3,58 +3,84 @@
 <head>
     <title>Number Matching Game</title>
     <style>
-        .number-card { display: inline-block; width: 50px; height: 50px; margin: 10px; font-size: 24px; background-color: #eee; text-align: center; line-height: 50px; cursor: pointer; }
-        .matched { background-color: #aaffaa; }
+        .number-card {
+            display: inline-block;
+            width: 60px;
+            height: 60px;
+            margin: 10px;
+            font-size: 28px;
+            background-color: #ccc;
+            text-align: center;
+            line-height: 60px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: bold;
+            color: transparent; /* hide number text initially */
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .flipped {
+            color: black; /* show number when flipped */
+            background-color: #aaaaff;
+        }
+        .matched {
+            background-color: #aaffaa !important;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <h1>Number Matching Game</h1>
-    <div>
-        <h2>Points: <span id="score">{{ score }}</span></h2>
-    </div>
+    <h2>Points: <span id="score">{{ score }}</span></h2>
     <div id="game-board">
         {% for idx, num in numbers %}
-            <div class="number-card" data-idx="{{ idx }}">{{ num }}</div>
+            <div class="number-card" data-idx="{{ idx }}" data-value="{{ num }}"></div>
         {% endfor %}
     </div>
+
     <script>
         let first = null, second = null;
         let matched = [];
+
         document.querySelectorAll('.number-card').forEach(function(card) {
             card.onclick = function() {
-                if (matched.includes(String(card.dataset.idx))) return;
+                if (matched.includes(card.dataset.idx) || card.classList.contains('flipped')) return;
+
+                // Flip the card
+                card.textContent = card.dataset.value;
+                card.classList.add('flipped');
+
                 if (first === null) {
                     first = card;
-                    card.style.backgroundColor = '#aaaaff';
                 } else if (second === null && card !== first) {
                     second = card;
-                    card.style.backgroundColor = '#aaaaff';
-                    // Send selection to backend
+
+                    // Send both indices to backend
                     fetch('/match', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ first: first.dataset.idx, second: second.dataset.idx })
-                    }).then(resp => resp.json()).then(data => {
+                    })
+                    .then(resp => resp.json())
+                    .then(data => {
                         document.getElementById('score').textContent = data.score;
+
                         if (data.matched) {
                             first.classList.add('matched');
                             second.classList.add('matched');
-                            matched.push(String(first.dataset.idx), String(second.dataset.idx));
+                            matched.push(first.dataset.idx, second.dataset.idx);
+                        } else {
+                            setTimeout(() => {
+                                first.textContent = '';
+                                second.textContent = '';
+                                first.classList.remove('flipped');
+                                second.classList.remove('flipped');
+                            }, 800);
                         }
-                        setTimeout(() => {
-                            first.style.backgroundColor = '';
-                            second.style.backgroundColor = '';
-                            first = second = null;
-                        }, 600);
-                    }).catch(err => {
-                        // Reset visual state if backend fails
-                        first.style.backgroundColor = '';
-                        second.style.backgroundColor = '';
+
                         first = second = null;
-                        console.error(err);
                     });
                 }
-            }
+            };
         });
     </script>
 </body>
