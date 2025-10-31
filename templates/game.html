@@ -22,11 +22,11 @@
         let matched = [];
         document.querySelectorAll('.number-card').forEach(function(card) {
             card.onclick = function() {
-                if(matched.includes(card.dataset.idx)) return;
-                if(first === null) {
+                if (matched.includes(String(card.dataset.idx))) return;
+                if (first === null) {
                     first = card;
                     card.style.backgroundColor = '#aaaaff';
-                } else if(second === null && card !== first) {
+                } else if (second === null && card !== first) {
                     second = card;
                     card.style.backgroundColor = '#aaaaff';
                     // Send selection to backend
@@ -36,16 +36,22 @@
                         body: JSON.stringify({ first: first.dataset.idx, second: second.dataset.idx })
                     }).then(resp => resp.json()).then(data => {
                         document.getElementById('score').textContent = data.score;
-                        if(data.matched) {
+                        if (data.matched) {
                             first.classList.add('matched');
                             second.classList.add('matched');
-                            matched.push(first.dataset.idx, second.dataset.idx);
+                            matched.push(String(first.dataset.idx), String(second.dataset.idx));
                         }
                         setTimeout(() => {
                             first.style.backgroundColor = '';
                             second.style.backgroundColor = '';
                             first = second = null;
-                        }, 800);
+                        }, 600);
+                    }).catch(err => {
+                        // Reset visual state if backend fails
+                        first.style.backgroundColor = '';
+                        second.style.backgroundColor = '';
+                        first = second = null;
+                        console.error(err);
                     });
                 }
             }
