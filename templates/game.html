@@ -22,14 +22,13 @@
             cursor: pointer;
             border-radius: 10px;
             font-weight: bold;
-            color: transparent; /* hide numbers */
-            transition: transform 0.4s, background-color 0.3s, color 0.3s;
+            user-select: none;
         }
 
         .flipped {
-            color: black;
             background-color: #aaaaff;
-            transform: rotateY(180deg);
+            color: black;
+            transform: scale(1.1);
         }
 
         .matched {
@@ -43,20 +42,29 @@
     <h1>Number Matching Game</h1>
     <h2>Points: <span id="score">{{ score }}</span></h2>
 
-    <div id="game-board">
-        {% for idx, num in numbers %}
-            <!-- Don't show the number initially -->
-            <div class="number-card" data-idx="{{ idx }}" data-value="{{ num }}"></div>
-        {% endfor %}
-    </div>
+    <div id="game-board"></div>
 
     <script>
+        // Store numbers in JS (Flask sends JSON-safe data)
+        const numbers = {{ numbers | tojson }};
+        const gameBoard = document.getElementById("game-board");
+        const matched = new Set();
         let first = null, second = null;
-        let matched = [];
 
+        // Create blank cards (no numbers shown)
+        numbers.forEach((num, idx) => {
+            const card = document.createElement("div");
+            card.className = "number-card";
+            card.dataset.idx = idx;
+            card.dataset.value = num;
+            card.textContent = ""; // hidden initially
+            gameBoard.appendChild(card);
+        });
+
+        // Add click logic
         document.querySelectorAll('.number-card').forEach(card => {
             card.onclick = () => {
-                if (matched.includes(card.dataset.idx) || card.classList.contains('flipped')) return;
+                if (matched.has(card.dataset.idx) || card.classList.contains('flipped')) return;
 
                 // Reveal number
                 card.textContent = card.dataset.value;
@@ -70,7 +78,10 @@
                     fetch('/match', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ first: first.dataset.idx, second: second.dataset.idx })
+                        body: JSON.stringify({
+                            first: first.dataset.idx,
+                            second: second.dataset.idx
+                        })
                     })
                     .then(resp => resp.json())
                     .then(data => {
@@ -79,7 +90,8 @@
                         if (data.matched) {
                             first.classList.add('matched');
                             second.classList.add('matched');
-                            matched.push(first.dataset.idx, second.dataset.idx);
+                            matched.add(first.dataset.idx);
+                            matched.add(second.dataset.idx);
                         } else {
                             setTimeout(() => {
                                 first.textContent = '';
@@ -88,7 +100,6 @@
                                 second.classList.remove('flipped');
                             }, 800);
                         }
-
                         first = second = null;
                     });
                 }
