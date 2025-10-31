@@ -3,36 +3,49 @@
 <head>
     <title>Number Matching Game</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f3ff;
+            text-align: center;
+            margin-top: 50px;
+        }
+
         .number-card {
             display: inline-block;
             width: 60px;
             height: 60px;
             margin: 10px;
             font-size: 28px;
-            background-color: #ccc;
+            background-color: #ddd;
             text-align: center;
             line-height: 60px;
             cursor: pointer;
             border-radius: 10px;
             font-weight: bold;
-            color: transparent; /* hide number text initially */
-            transition: background-color 0.3s, color 0.3s;
+            color: transparent; /* hide numbers */
+            transition: transform 0.4s, background-color 0.3s, color 0.3s;
         }
+
         .flipped {
-            color: black; /* show number when flipped */
+            color: black;
             background-color: #aaaaff;
+            transform: rotateY(180deg);
         }
+
         .matched {
             background-color: #aaffaa !important;
             color: black;
+            transform: scale(1.1);
         }
     </style>
 </head>
 <body>
     <h1>Number Matching Game</h1>
     <h2>Points: <span id="score">{{ score }}</span></h2>
+
     <div id="game-board">
         {% for idx, num in numbers %}
+            <!-- Don't show the number initially -->
             <div class="number-card" data-idx="{{ idx }}" data-value="{{ num }}"></div>
         {% endfor %}
     </div>
@@ -41,20 +54,19 @@
         let first = null, second = null;
         let matched = [];
 
-        document.querySelectorAll('.number-card').forEach(function(card) {
-            card.onclick = function() {
+        document.querySelectorAll('.number-card').forEach(card => {
+            card.onclick = () => {
                 if (matched.includes(card.dataset.idx) || card.classList.contains('flipped')) return;
 
-                // Flip the card
+                // Reveal number
                 card.textContent = card.dataset.value;
                 card.classList.add('flipped');
 
-                if (first === null) {
+                if (!first) {
                     first = card;
-                } else if (second === null && card !== first) {
+                } else if (!second && card !== first) {
                     second = card;
 
-                    // Send both indices to backend
                     fetch('/match', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
