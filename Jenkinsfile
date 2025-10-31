@@ -1,49 +1,63 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-    stage('Check Docker') {
-      steps {
-        bat 'where docker || (echo "docker not found" & exit 1)'
-        bat 'docker --version'
-      }
+    environment {
+        // Add Docker path so Jenkins can access it
+        PATH = "${PATH};C:\\Program Files\\Docker\\Docker\\resources\\bin"
     }
 
-    stage('Build Docker Image') {
-      steps {
-        dir('C:\\Users\\spmah\\Downloads\\Game') {
-          bat 'docker build -t kubdemoapp:v1 .'
+    stages {
+        stage('Check Docker') {
+            steps {
+                echo '🔍 Checking Docker installation...'
+                bat 'docker --version'
+                bat 'docker ps'
+            }
         }
-      }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "🐳 Building Docker Image..."
+                dir('C:\\Users\\spmah\\Downloads\\Game') {
+                    bat 'docker build -t kubdemoapp:v1 .'
+                }
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                echo "🔑 Logging into Docker Hub..."
+                bat 'docker login -u sparshitha -p 0213@Csptha'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                echo "🚀 Pushing Docker image to Docker Hub..."
+                bat 'docker tag kubdemoapp:v1 sparshitha/game:kubeimage1'
+                bat 'docker push sparshitha/game:kubeimage1'
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                echo "⚙️ Deploying to Kubernetes cluster..."
+                bat '''
+                set KUBECONFIG=C:\\Users\\spmah\\.kube\\config
+                kubectl cluster-info
+                kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\deployment.yaml
+                kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\service.yaml
+                '''
+            }
+        }
     }
 
-    stage('Docker Login') {
-      steps {
-        // avoid plaintext in pipeline - use Jenkins credentials in real pipelines
-        bat 'docker login -u sparshitha -p 0213@Csptha'
-      }
+    post {
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check Jenkins logs for details.'
+        }
     }
-
-    stage('Push Docker Image') {
-      steps {
-        bat 'docker tag kubdemoapp:v1 sparshitha/game:kubeimage1'
-        bat 'docker push sparshitha/game:kubeimage1'
-      }
-    }
-
-    stage('Deploy to K8s') {
-      steps {
-        bat '''
-          set KUBECONFIG=C:\\Users\\spmah\\.kube\\config
-          kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\deployment.yaml
-          kubectl apply -f C:\\Users\\spmah\\Downloads\\Game\\service.yaml
-        '''
-      }
-    }
-  }
-
-  post {
-    success { echo '✅ Pipeline completed' }
-    failure { echo '❌ Pipeline failed' }
-  }
 }
