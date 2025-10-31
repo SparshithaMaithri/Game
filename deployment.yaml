@@ -14,6 +14,12 @@ spec:
     spec:
       containers:
         - name: kubdemoapp
-          image: sparshitha/game:kubeimage1   # ✅ Updated to your Docker Hub image
+          image: sparshitha/game:kubeimage1
           ports:
             - containerPort: 5000
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
