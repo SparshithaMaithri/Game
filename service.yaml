@@ -3,6 +3,7 @@ kind: Service
 metadata:
   name: kubdemoapp-service
 spec:
+  type: NodePort
   selector:
     app: kubdemoapp
   ports:
@@ -10,4 +11,3 @@ spec:
       port: 5000
       targetPort: 5000
       nodePort: 31122
-  type: NodePort
